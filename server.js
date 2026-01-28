@@ -80,7 +80,7 @@ app.get("/export/xls", async (req, res) => {
         sno: i + 1,
         teamName: item.teamName,
         transactionId: item.transactionId,
-        paymentImageUrl: `http://localhost:5000/payment-image/${item._id}`
+        paymentImageUrl: `https://innoverse-26-backend.onrender.com/payment-image/${item._id}`
       };
 
       item.members.forEach((m, idx) => {
