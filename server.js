@@ -6,7 +6,7 @@ import Registration from "./models/Registration.js";
 
 const app = express();
 
-app.use(cors({ origin: "https://www.innoverse-26.me/" }));
+app.use(cors());
 app.use(express.json({ limit: "20mb" }));
 
 mongoose
