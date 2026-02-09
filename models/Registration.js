@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-
 const memberSchema = new mongoose.Schema(
   {
     role: String,
