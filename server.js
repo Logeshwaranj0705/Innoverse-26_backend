@@ -1,4 +1,3 @@
-// server.js
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -15,6 +14,11 @@ mongoose
   })
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
+
+const SATHYABAMA = "Sathyabama Institute of Science and Technology";
+const normalizeSpaces = (v) => String(v || "").replace(/\s+/g, " ").trim();
+const normLower = (v) => normalizeSpaces(v).toLowerCase();
+const SATHYABAMA_LIMIT = Number(process.env.SATHYABAMA_TEAM_LIMIT || 20);
 
 const memberSchema = new mongoose.Schema(
   {
@@ -45,31 +49,34 @@ const Registration = mongoose.model("Registration", registrationSchema);
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
+app.get("/slots/sathyabama", async (req, res) => {
+  try {
+    const count = await Registration.countDocuments({ "members.0.clg": SATHYABAMA });
+    const filled = count >= SATHYABAMA_LIMIT;
+    return res.json({ success: true, college: SATHYABAMA, count, limit: SATHYABAMA_LIMIT, filled });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: "slot check failed" });
+  }
+});
+
 app.post("/register", async (req, res) => {
   try {
     const { event, teamName, teamSize, members, transactionId, paymentImage, submittedAt } = req.body;
 
-    if (
-      !teamName ||
-      !teamSize ||
-      !Array.isArray(members) ||
-      members.length === 0 ||
-      !transactionId ||
-      !paymentImage
-    ) {
+    if (!teamName || !teamSize || !Array.isArray(members) || members.length === 0 || !transactionId || !paymentImage) {
       return res.status(400).json({ success: false, error: "missing fields" });
     }
 
-    const exists = await Registration.findOne({ teamName }).lean();
+    const exists = await Registration.findOne({ teamName: String(teamName).trim() }).lean();
     if (exists) {
       return res.status(409).json({ success: false, error: "team exists" });
     }
 
     const cleanedMembers = members.map((m, i) => ({
       role: m?.role || (i === 0 ? "Leader" : `Member ${i}`),
-      name: String(m?.name || "").trim(),
-      clg: String(m?.clg || "").trim(),
-      dept: String(m?.dept || "").trim(),
+      name: normalizeSpaces(m?.name),
+      clg: normalizeSpaces(m?.clg),
+      dept: normalizeSpaces(m?.dept),
       email: String(m?.email || "").trim(),
       mobile: String(m?.mobile || "").trim(),
       gender: String(m?.gender || "").trim(),
@@ -77,9 +84,22 @@ app.post("/register", async (req, res) => {
       year: String(m?.year || "").trim(),
     }));
 
+    const typedSathyabamaInOther = cleanedMembers.some((m) => normLower(m.clg) === normLower(SATHYABAMA) && m.clg !== SATHYABAMA);
+    if (typedSathyabamaInOther) {
+      return res.status(400).json({ success: false, error: "do not type sathyabama in other field" });
+    }
+
+    const leaderClg = cleanedMembers?.[0]?.clg || "";
+    if (leaderClg === SATHYABAMA) {
+      const count = await Registration.countDocuments({ "members.0.clg": SATHYABAMA });
+      if (count >= SATHYABAMA_LIMIT) {
+        return res.status(409).json({ success: false, error: "slot filled" });
+      }
+    }
+
     const doc = await Registration.create({
       event: event || "INNOVERSE 26",
-      teamName: String(teamName).trim(),
+      teamName: normalizeSpaces(teamName),
       teamSize: Number(teamSize),
       members: cleanedMembers,
       transactionId: String(transactionId).trim(),
@@ -163,10 +183,7 @@ app.get("/export/xls", async (req, res) => {
 
     const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
 
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    );
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", "attachment; filename=innoverse.xlsx");
 
     res.end(buffer);
