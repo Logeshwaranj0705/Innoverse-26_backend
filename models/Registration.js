@@ -1,9 +1,12 @@
+// models/Registration.js
 import mongoose from "mongoose";
+
 const memberSchema = new mongoose.Schema(
   {
     role: String,
     name: String,
     clg: String,
+    dept: String,
     email: String,
     mobile: String,
     gender: String,
