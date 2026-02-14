@@ -19,7 +19,7 @@ const SATHYABAMA = "Sathyabama Institute of Science and Technology";
 const normalizeSpaces = (v) => String(v || "").replace(/\s+/g, " ").trim();
 const normLower = (v) => normalizeSpaces(v).toLowerCase();
 const hasSathyabamaWord = (v) => normLower(v).includes("sathyabama");
-const SATHYABAMA_LIMIT = Number(process.env.SATHYABAMA_TEAM_LIMIT || 21);
+const SATHYABAMA_LIMIT = Number(process.env.SATHYABAMA_TEAM_LIMIT || 20);
 
 const memberSchema = new mongoose.Schema(
   {
