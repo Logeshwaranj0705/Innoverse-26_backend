@@ -18,12 +18,14 @@ mongoose
 const SATHYABAMA = "Sathyabama Institute of Science and Technology";
 const normalizeSpaces = (v) => String(v || "").replace(/\s+/g, " ").trim();
 const normLower = (v) => normalizeSpaces(v).toLowerCase();
-const SATHYABAMA_LIMIT = Number(process.env.SATHYABAMA_TEAM_LIMIT || 20);
+const hasSathyabamaWord = (v) => normLower(v).includes("sathyabama");
+const SATHYABAMA_LIMIT = Number(process.env.SATHYABAMA_TEAM_LIMIT || 3);
 
 const memberSchema = new mongoose.Schema(
   {
     role: String,
     name: String,
+    clgMode: String,
     clg: String,
     dept: String,
     email: String,
@@ -63,7 +65,14 @@ app.post("/register", async (req, res) => {
   try {
     const { event, teamName, teamSize, members, transactionId, paymentImage, submittedAt } = req.body;
 
-    if (!teamName || !teamSize || !Array.isArray(members) || members.length === 0 || !transactionId || !paymentImage) {
+    if (
+      !teamName ||
+      !teamSize ||
+      !Array.isArray(members) ||
+      members.length === 0 ||
+      !transactionId ||
+      !paymentImage
+    ) {
       return res.status(400).json({ success: false, error: "missing fields" });
     }
 
@@ -75,6 +84,7 @@ app.post("/register", async (req, res) => {
     const cleanedMembers = members.map((m, i) => ({
       role: m?.role || (i === 0 ? "Leader" : `Member ${i}`),
       name: normalizeSpaces(m?.name),
+      clgMode: String(m?.clgMode || "").trim(),
       clg: normalizeSpaces(m?.clg),
       dept: normalizeSpaces(m?.dept),
       email: String(m?.email || "").trim(),
@@ -84,7 +94,9 @@ app.post("/register", async (req, res) => {
       year: String(m?.year || "").trim(),
     }));
 
-    const typedSathyabamaInOther = cleanedMembers.some((m) => normLower(m.clg) === normLower(SATHYABAMA) && m.clg !== SATHYABAMA);
+    const typedSathyabamaInOther = cleanedMembers.some(
+      (m) => m.clgMode === "OTHER" && hasSathyabamaWord(m.clg)
+    );
     if (typedSathyabamaInOther) {
       return res.status(400).json({ success: false, error: "do not type sathyabama in other field" });
     }
@@ -165,6 +177,7 @@ app.get("/export/xls", async (req, res) => {
         const n = idx + 1;
         row[`member${n}_role`] = m.role || "";
         row[`member${n}_name`] = m.name || "";
+        row[`member${n}_clgMode`] = m.clgMode || "";
         row[`member${n}_clg`] = m.clg || "";
         row[`member${n}_dept`] = m.dept || "";
         row[`member${n}_email`] = m.email || "";
