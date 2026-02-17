@@ -61,7 +61,7 @@ app.get("/slots/sathyabama", async (req, res) => {
   }
 });
 
-app.post("/register", async (req, res) => {
+app.post("/random-1988-register", async (req, res) => {
   try {
     const { event, teamName, teamSize, members, transactionId, paymentImage, submittedAt } = req.body;
 
